@@ -2,3 +2,10 @@
 #main-title {
 	padding-top:109px;
 }
+
+.date-result {
+	margin-top: 20px;
+	color: grey;
+	font-size: 20px;
+	text-align: center;
+}
