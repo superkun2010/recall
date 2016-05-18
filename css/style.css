@@ -4,8 +4,23 @@
 }
 
 .date-result {
-	margin-top: 20px;
 	color: grey;
-	font-size: 20px;
-	text-align: center;
+	font-style: italic;
+	font-size: 12px;
+}
+
+.holder {
+	padding: 10px;
+}
+
+.heading-text {
+	font-weight: bold;
+}
+
+.more-button {
+	margin-top: 15px;
+}
+
+.modal-head {
+	font-size: 14px;
 }

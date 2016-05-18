@@ -28,28 +28,55 @@ var SearchResult = function (config) {
 
 
 //Builds the shortened search results onto the main page
-SearchResult.prototype.resultify = function (name, desc, date) {
-	var holderDiv = $("<div>").attr({class:"row holder"});
-	var dateDiv = $("<div>").attr({class:"col-md-offset-1 col-md-2 date-result"});
-	dateDiv.html(date);
-	var textDiv = $("<div>").attr({class:"col-md-6"});
-	if (name.length > 100) {
-		name = name.slice(0,100) + "...";
+SearchResult.prototype.resultify = function () {
+	var holderDiv = $("<div>").attr({class:"row card-panel hoverable holder"});
+	var imgDiv = $("<div>").attr({class:"col m2 valign-wrapper"});
+	var img = $("<img>").attr({src:this.img, alt:this.type, class: "responsive-img valign"});
+	imgDiv.append(img);
+	var textDiv = $("<div>").attr({class:"col m8"});
+	if (this.name.length > 100) {
+		var shortName = this.name.slice(0,100) + "...";
 	};
-	var headingText = $("<h3>").html(name);
-	if (desc.length > 200) {
-		desc = desc.slice(0,200) + "...";
+	var headingText = $("<p>").attr({class:"heading-text"}).html(shortName);
+	if (this.desc.length > 200) {
+		var shortDesc = this.desc.slice(0,200) + "...";
 	};
-	var descText = $("<p>").html(desc);
-	var imgDiv = $("<div>").attr({class:"col-md-2 img-result"});
-	holderDiv.append(dateDiv);
+	this.date = this.date.toString();
+	this.date = this.date.slice(4,6) + "/" + this.date.slice(6) + "/" + this.date.slice(0,4);
+	var dateText = $("<p>").attr({class:"date-result"}).html(this.date);
+	var descText = $("<p>").html(shortDesc);
+
+	var buttonDiv = $("<div>").attr({class:"col m2"});
+	var moreButton = $("<button>").attr({class:"btn waves-effect waves-light right more-button modal-trigger ", "data-target":"detail-modal" }).html("more");
+	moreButton.leanModal({
+      dismissible: true, // Modal can be dismissed by clicking outside of the modal
+      opacity: .5, // Opacity of modal background
+      in_duration: 400, // Transition in duration
+      out_duration: 300, // Transition out duration
+    });
+	moreButton.click((function () {
+		$('.modal-name').html(this.name);
+		$('.modal-date').html(this.date);
+		$('.modal-firm').html(this.firm);
+		$('.modal-quant').html(this.quantity);
+		$('.modal-agency').html(this.agency);
+		$('.modal-recall').html(this.recallNo);
+		$('.modal-desc').html(this.desc);
+		$('.modal-remedy').html(this.remedy);
+		$('.modal-img').attr("src",this.img);
+	}).bind(this));
+
+	buttonDiv.append(moreButton);
+	holderDiv.append(imgDiv);
 	textDiv.append(headingText);
+	textDiv.append(dateText);
 	textDiv.append(descText);
 	holderDiv.append(textDiv);
-	holderDiv.append(imgDiv);
+	holderDiv.append(buttonDiv);
 	$(".container").append(holderDiv);
 
 };
+
 
 //Builds a sorted Array of objects
 //to build test
@@ -64,6 +91,7 @@ SearchResult.prototype.resultify = function (name, desc, date) {
 
 window.onload = function () {
 	var fdaApiKey = "HHCcDGoruuTceo15i4wmqYRnRm6xztiRLY4FhS0F";
+	$('#detail-modal').leanModal();
 	$("#search-button").click(function(event) {
 		$(".holder").remove();
 		$.ajax({
@@ -86,7 +114,7 @@ window.onload = function () {
 					currentSearch.agency = "Consumer Product Safety Commission (CPSC)"
 					currentSearch.recallNo = data[i]["RecallID"];
 					function remedy () {
-						if (data[i]["Remedies"]) {
+						if (data[i]["Remedies"].length > 0) {
 							currentSearch.remedy = data[i]["Remedies"][0]["Name"];	
 						}
 					};
@@ -118,7 +146,7 @@ window.onload = function () {
 							currentSearch.type = data[i]["Products"][0]["Type"];	
 						}
 					};
-	  				
+					currentSearch.resultify();
 	        	}
 	        },
 	        error: function(error) {
@@ -126,7 +154,7 @@ window.onload = function () {
 	        }        
       	});
 		$.ajax({
-	        url: 'https://api.fda.gov/food/enforcement.json?search=' + $("#search-box").val() + '&limit=10',
+	        url: 'https://api.fda.gov/food/enforcement.json?api_key=' + fdaApiKey + '&search=' + $("#search-box").val() + '&limit=10',
 	        method: "GET",
 	        success: function (data) {
 				for (var i=0; i < data["results"].length; i++) {
@@ -141,8 +169,9 @@ window.onload = function () {
 					currentSearch.recallNo = data["results"][i]["recall_number"];
 					currentSearch.remedy = "http://www.fda.gov/Safety/Recalls/default.htm";
 					currentSearch.img = "img/food.png";
-
+					currentSearch.resultify();
 	        	}
+	        	
 	        },
 	        error: function(error) {
 	          console.log ('FDA server is not responding');
