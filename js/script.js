@@ -26,6 +26,13 @@ var SearchResult = function (config) {
 	this.type = config.type || "N/A";
 }
 
+SearchUser.prototype.newSearch = function () {
+	if (this.searchArray.length !== 0) {
+		this.searchStorage.push(this.searchArray);
+		this.searchArray = [];
+		$(".holder").remove();
+	}
+}
 
 //Builds the shortened search results onto the main page
 function resultify (obj) {
@@ -80,10 +87,19 @@ function resultify (obj) {
 		textDiv.append(descText);
 		holderDiv.append(textDiv);
 		holderDiv.append(buttonDiv);
-		$(".container").append(holderDiv);
+		$("#search-results").append(holderDiv);
 	}
 
 };
+
+function moveSearchBox () {
+	$("#main-title").remove();
+	var searchDiv = $('#search-div');
+	$('#search-button').attr({"class": "btn waves-effect waves-light"});
+	$('#search-box').css("float", "none");
+	$('#search-button').css({"margin-left": "20px"});
+	$('#sidebar-form').append(searchDiv);
+}
 
 //launches a new user 
 var newUser = new SearchUser();
@@ -108,10 +124,13 @@ function buildSorted (obj) {
 
 window.onload = function () {
 	 var fdaApiKey = "HHCcDGoruuTceo15i4wmqYRnRm6xztiRLY4FhS0F";
+	// Initialize collapse button
+	$(".button-collapse").sideNav();
+	// Initialize collapsible
+	$('.collapsible').collapsible();
 	//on click of the search button all ajax requests will be executed
 	$("#search-button").click(function(event) {
-		$(".holder").remove();
-
+		newUser.newSearch();
 		//ajax request sent to CPSC
 		var cpscPromise = $.ajax({
 	        url: 'http://www.saferproducts.gov/RestWebServices/Recall?RecallTitle=' + $("#search-box").val() + '&format=json',
@@ -124,10 +143,11 @@ window.onload = function () {
 	        method: "GET"
 	    });
 
-	    $.when(cpscPromise, fdaPromise).done(function(cpscResponse, fdaResponse) {
-	    	console.log(cpscResponse, fdaResponse);
+	    $.when(cpscPromise, fdaPromise).then(function(cpscResponse, fdaResponse) {
+	    	moveSearchBox();
 			//formatting CPSC data
 			if (cpscResponse[1] == "success"){
+				Materialize.toast('Retrieved CSPC Data', 2000);
 				for (var i=0; i < cpscResponse[0].length; i++) {
 					var currentSearch = new SearchResult();
 					var retailers;
@@ -180,9 +200,11 @@ window.onload = function () {
 				}
 			} else {
 				console.log("CSPC server is not responding");
+				Materialize.toast('CSPC Error Try Again', 2000);
 			}
 			//formatting FDA data
 			if (fdaResponse[1] == "success") {
+				Materialize.toast('Retrieved FDA Data', 2000);
 				for (var i=0; i < fdaResponse[0]["results"].length; i++) {
 							var currentSearch = new SearchResult();
 							currentSearch.name = fdaResponse[0]["results"][i]["product_description"];
@@ -199,9 +221,14 @@ window.onload = function () {
 				}
 			} else {
 				console.log ('FDA server is not responding');
+				Materialize.toast('FDA Error Try Again', 2000);
 			}
 			//rendering all responses to the page
 			resultify(newUser.searchArray);
+
+	    }, function(cpscError, fdaError) {
+	    	console.log(cpscError, fdaError);
+	    	Materialize.toast('Error retrieving data, try again', 2000);
 
 	    });
 		event.preventDefault();
