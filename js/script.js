@@ -1,39 +1,4 @@
 
-
-var SearchUser = function (config) {
-	if (!config) {
-		config = {};
-	}
-	this.name = config.name || "User";
-	this.typeTable = {};
-	this.searchArray = config.searchArray || new Array;
-	this.searchStorage = config.searchStorage || new Array;
-}
-
-var SearchResult = function (config) {
-	if (!config) {
-		config = {};
-	}
-	this.name = config.name || "N/A";
-	this.desc = config.desc || "N/A";
-	this.date = config.date || "N/A";
-	this.quantity = config.quantity || "N/A";
-	this.firm = config.firm || "N/A";
-	this.agency = config.agency || "N/A";
-	this.recallNo = config.recallNo || "N/A";
-	this.remedy = config.remedy || "N/A";
-	this.img = config.img || "N/A";
-	this.type = config.type || "N/A";
-}
-
-SearchUser.prototype.newSearch = function () {
-	if (this.searchArray.length !== 0) {
-		this.searchStorage.push(this.searchArray);
-		this.searchArray = [];
-		$(".holder").remove();
-	}
-}
-
 //Builds the shortened search results onto the main page
 function resultify (obj) {
 	for (var i = 0; i < obj.length; i++) {	
@@ -70,6 +35,7 @@ function resultify (obj) {
 		
 		moreButton.click((function () {
 			$('.modal-name').html(this.name);
+
 			$('.modal-date').html(this.date);
 			$('.modal-firm').html(this.firm);
 			$('.modal-quant').html(this.quantity);
@@ -228,7 +194,7 @@ window.onload = function () {
 
 	$(".button-collapse").sideNav();
 	$('.collapsible').collapsible();
-	$('#about-modal').leanModal();
+	$('#about').leanModal();
 	//on click of the search button a general search will be done for the search term
 	$("#search-button").click(function(event) {
 		newUser.newSearch();
@@ -246,17 +212,30 @@ window.onload = function () {
 	        method: "GET"
 	    });
 
-	    $.when(cpscGeneral, fdaGeneral).then(function(cpscResponse, fdaResponse) {
+	    $.when(cpscGeneral,fdaGeneral).then(function(cpscResponse, fdaResponse) {
 	    	moveSearchBox();
 	    	removeSpinner();
 	    	cpscReformat(cpscResponse);
-			fdaReformat(fdaResponse);
+	    	fdaReformat(fdaResponse);
 			resultify(newUser.searchArray);
 
-	    }, function(cpscError, fdaError) {
-	    	console.log(cpscError, fdaError);
-	    	removeSpinner();
-	    	Materialize.toast('Error retrieving data, try again', 2000);
+	    }, function(err) {
+	    	console.log(err);
+	    	if (err.responseText) {
+	    		//fda data gives an error when there are no matches :(
+	    		//therefore built in a nested when to run for CSPC results 
+	    		//the second value in when function is just placeholder so 
+	    		//values stay in the same format for cpscReformat function
+	    		$.when(cpscGeneral,1).then(function(cpscResponse, value) {
+	    			moveSearchBox();
+			    	removeSpinner();
+			    	cpscReformat(cpscResponse);
+					resultify(newUser.searchArray);
+	    		})
+	    	} else {
+	    		removeSpinner();
+	    		Materialize.toast('Error retrieving data, try again', 2000);
+	    	}
 	    });
 		event.preventDefault();
 	});
@@ -271,19 +250,19 @@ window.onload = function () {
 		var yyyy = date.getFullYear();
 
 
-		var cpscToday = $.ajax({
+		var cpscPromise = $.ajax({
 	        url: 'http://www.saferproducts.gov/RestWebServices/Recall?RecallDateStart=' + yyyy + '-' + mm + '-' + dd + '&format=json&limit=10',
 	        method: "GET"    
       	});
 
 		//request sent out to the FDA which retrieves ENFORCEMENT REPORTS not recalls
-      	var fdaToday = $.ajax({
+      	var fdaPromise = $.ajax({
 		    url: 'https://api.fda.gov/food/enforcement.json?api_key=' + fdaApiKey + '&search=recall_date:' + yyyy + mm + dd + '&limit=10',
 	        method: "GET"
 	    });
 
 
-	    $.when(cpscToday,fdaToday).then(function(cpscResponse, fdaResponse) {
+	    $.when(cpscPromise,fdaPromise).then(function(cpscResponse, fdaResponse) {
 	    	moveSearchBox();
 	    	removeSpinner();
 	    	cpscReformat(cpscResponse);
@@ -297,7 +276,7 @@ window.onload = function () {
 	    		//therefore built in a nested when to run for CSPC results 
 	    		//the second value in when function is just placeholder so 
 	    		//values stay in the same format for cpscReformat function
-	    		$.when(cpscToday,1).then(function(cpscResponse, value) {
+	    		$.when(cpscPromise,1).then(function(cpscResponse, value) {
 	    			moveSearchBox();
 			    	removeSpinner();
 			    	cpscReformat(cpscResponse);
