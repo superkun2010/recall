@@ -10,19 +10,26 @@
 	<header>
 		<div class="container" >	
 			<ul class="side-nav fixed" id="side-bar">
-		        <li class="logo"><img id="logo-container" src="img/coollogo_com-262264923.png" class="responsive-img"></li>
+		        <li class="logo"><img id="logo-container" src="img/logo.png" class="responsive-img"></li>
 					<div class="nav-wrapper" id="search-nav">
 						<form id="sidebar-form">
 							
 						</form>
 					</div>
-		        <li class="bold"><a href="#" class="waves-effect waves-teal">About</a></li>
+		        <li class="bold"><a class="waves-effect waves-teal modal-trigger" href="#about-modal">About</a></li>
 				<ul class="collapsible collapsible-accordion">
 					<li class="bold"><a class="collapsible-header waves-effect waves-teal">Popular Searches</a>
 						<div class="collapsible-body">
 							<ul>
-								<li><a href="#">Today</a></li>
-								<li><a href="#">Food</a></li>
+								<li><a href="#" id="today-search">Today</a></li>
+							</ul>
+						</div>
+					</li>
+	    		</ul>
+	    		<ul class="collapsible collapsible-accordion">
+					<li class="bold"><a class="collapsible-header waves-effect waves-teal">Recent Searches</a>
+						<div class="collapsible-body">
+							<ul id="recent-searches">
 							</ul>
 						</div>
 					</li>
@@ -34,8 +41,8 @@
 	<main>
 		<div class="container" id="search-results">
 			<div id="main-title" class="row">
-				<div class="col m4 offset-m4" id="logo-div">
-					<img src="img/coollogo_com-262264923.png" class="responsive-img">
+				<div class="col m6 offset-m3" id="logo-div">
+					<img src="img/logo.png" class="responsive-img">
 				</div>
 			</div>
 			<div class="row">
@@ -48,19 +55,24 @@
 		           	</form>	
 		        </div>
 			</div>
-		</div>
-	</main>
-	<div class="preloader-wrapper big active">
-		<div class="spinner-layer spinner-blue-only col offset-m6">
-			<div class="circle-clipper left">
-				<div class="circle"></div>
-			</div><div class="gap-patch">
-				<div class="circle"></div>
-			</div><div class="circle-clipper right">
-				<div class="circle"></div>
+			<div class="row">
+				<div class="col offset-m5" id="spinner-div">
+					<div id="spinner" class="preloader-wrapper big">
+						<div class="spinner-layer spinner-blue-only">
+							<div class="circle-clipper left">
+								<div class="circle"></div>
+							</div><div class="gap-patch">
+								<div class="circle"></div>
+							</div><div class="circle-clipper right">
+								<div class="circle"></div>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
-	</div>
+	</main>
+	<!-- Standard modal to provide detail on search results -->
 	<div id="detail-modal" class="modal modal-fixed-footer">
 		<div class="modal-content">
 			<div>
@@ -80,6 +92,18 @@
 				<p><strong>What you should do</strong></p>
 				<p class="modal-remedy"></p>
 				<img class="modal-img responsive-img">
+			</div>
+		</div>
+		<div class="modal-footer">
+			<a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+		</div>
+	</div>
+	<!-- modal for about menu item -->
+	<div id="about-modal" class="modal modal-fixed-footer">
+		<div class="modal-content">
+			<div>
+				<h1>About Total Recall</h1>
+				<p>Total Recall is a one-stop website to search and monitor all product recalls from the FDA, CSPC and NHTSA</p>
 			</div>
 		</div>
 		<div class="modal-footer">

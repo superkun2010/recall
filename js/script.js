@@ -101,9 +101,22 @@ function moveSearchBox () {
 	$('#sidebar-form').append(searchDiv);
 }
 
-//launches a new user 
-var newUser = new SearchUser();
+function spinner () {
+	$('#spinner').attr({"class":"preloader-wrapper big active"});
+	$('#spinner-div').css("padding-top", "109px");
+}
 
+function removeSpinner () {
+	$('#spinner').attr({"class":"preloader-wrapper big"});
+	$('#spinner-div').css("padding-top", "0px");
+}
+
+function addRecent () {
+	var searchVal = $("#search-box").val();
+	var searchText = $('<i>').html(searchVal);
+	var searchLi = $('<li>').append($('<a>').append(searchText));
+	$('#recent-searches').append(searchLi);
+}
 // Builds a sorted array of search results by date and puts them in the user search array
 function buildSorted (obj) {
 
@@ -122,116 +135,182 @@ function buildSorted (obj) {
 	}
 };
 
+//formatting CPSC data
+function cpscReformat (cpscResponse) {
+	if (cpscResponse[1] == "success"){
+		Materialize.toast('Retrieved CPSC Data', 2000);
+		for (var i=0; i < cpscResponse[0].length; i++) {
+			var currentSearch = new SearchResult();
+			var retailers;
+			var manufacturers;
+			remedy();
+			img();
+			retail();
+			manufacture();
+			product();
+			currentSearch.desc = cpscResponse[0][i]["Description"];
+			currentSearch.date = cpscResponse[0][i]["RecallDate"].slice(0,10);
+			currentSearch.date = parseInt(currentSearch.date.replace(/-/g,""));
+			currentSearch.firm = retailers + ", " + manufacturers;
+			currentSearch.agency = "Consumer Product Safety Commission (CPSC)"
+			currentSearch.recallNo = cpscResponse[0][i]["RecallID"];
+			function remedy () {
+				if (cpscResponse[0][i]["Remedies"].length > 0) {
+					currentSearch.remedy = cpscResponse[0][i]["Remedies"][0]["Name"];	
+				}
+			};
+			function img () {
+				if (cpscResponse[0][i]["Images"][0]) {
+					currentSearch.img = cpscResponse[0][i]["Images"][0]["URL"];
+				} else {
+					currentSearch.img = "img/teddy.png";
+				}
+			};
+			function retail () {
+				if (cpscResponse[0][i]["Retailers"][0]) {
+					retailers = cpscResponse[0][i]["Retailers"][0]["Name"];
+				} else {
+					retailers = "";
+				}
+			};
+			function manufacture () {
+				if (cpscResponse[0][i]["Manufacturers"][0]) {
+					manufacturers = cpscResponse[0][i]["Manufacturers"][0]["Name"];
+				} else {
+					manufacturers = "";
+				}
+			};
+			function product () {
+				if (cpscResponse[0][i]["Products"][0]) {
+					currentSearch.name = cpscResponse[0][i]["Products"][0]["Name"];
+					currentSearch.quantity = cpscResponse[0][i]["Products"][0]["NumberOfUnits"];
+					currentSearch.type = cpscResponse[0][i]["Products"][0]["Type"];	
+				}
+			};
+			buildSorted(currentSearch);
+		}
+	} else {
+		console.log("CPSC server is not responding");
+		Materialize.toast('CPSC Error Try Again', 2000);
+	}
+};
+
+//formatting FDA data
+function fdaReformat (fdaResponse) {
+	if (fdaResponse[1] == "success") {
+		Materialize.toast('Retrieved FDA Data', 2000);
+		for (var i=0; i < fdaResponse[0]["results"].length; i++) {
+					var currentSearch = new SearchResult();
+					currentSearch.name = fdaResponse[0]["results"][i]["product_description"];
+					currentSearch.desc = fdaResponse[0]["results"][i]["reason_for_recall"];
+					currentSearch.date = parseInt(fdaResponse[0]["results"][i]["recall_initiation_date"]);
+					currentSearch.quantity = fdaResponse[0]["results"][i]["product_quantity"];
+					currentSearch.firm = fdaResponse[0]["results"][i]["recalling_firm"];
+					currentSearch.agency = "Federal and Drug Administration (FDA)";
+					currentSearch.type = fdaResponse[0]["results"][i]["product_type"];
+					currentSearch.recallNo = fdaResponse[0]["results"][i]["recall_number"];
+					currentSearch.remedy = "http://www.fda.gov/Safety/Recalls/default.htm";
+					currentSearch.img = "img/food.png";
+					buildSorted(currentSearch);
+		}
+	} else {
+		console.log ('FDA server is not responding');
+		Materialize.toast('FDA Error Try Again', 2000);
+	}
+}
+
+			
+//launches a new user 
+var newUser = new SearchUser();
+
 window.onload = function () {
 	 var fdaApiKey = "HHCcDGoruuTceo15i4wmqYRnRm6xztiRLY4FhS0F";
-	// Initialize collapse button
+
 	$(".button-collapse").sideNav();
-	// Initialize collapsible
 	$('.collapsible').collapsible();
-	//on click of the search button all ajax requests will be executed
+	$('#about-modal').leanModal();
+	//on click of the search button a general search will be done for the search term
 	$("#search-button").click(function(event) {
 		newUser.newSearch();
+		spinner();
+		addRecent();
 		//ajax request sent to CPSC
-		var cpscPromise = $.ajax({
-	        url: 'http://www.saferproducts.gov/RestWebServices/Recall?RecallTitle=' + $("#search-box").val() + '&format=json',
+		var cpscGeneral = $.ajax({
+	        url: 'http://www.saferproducts.gov/RestWebServices/Recall?RecallTitle=' + $("#search-box").val() + '&format=json&limit=10',
 	        method: "GET"     
       	});
 
 		//request sent out to the FDA which retrieves ENFORCEMENT REPORTS not recalls
-      	var fdaPromise = $.ajax({
+      	var fdaGeneral = $.ajax({
 		    url: 'https://api.fda.gov/food/enforcement.json?api_key=' + fdaApiKey + '&search=' + $("#search-box").val() + '&limit=10',
 	        method: "GET"
 	    });
 
-	    $.when(cpscPromise, fdaPromise).then(function(cpscResponse, fdaResponse) {
+	    $.when(cpscGeneral, fdaGeneral).then(function(cpscResponse, fdaResponse) {
 	    	moveSearchBox();
-			//formatting CPSC data
-			if (cpscResponse[1] == "success"){
-				Materialize.toast('Retrieved CSPC Data', 2000);
-				for (var i=0; i < cpscResponse[0].length; i++) {
-					var currentSearch = new SearchResult();
-					var retailers;
-					var manufacturers;
-					remedy();
-					img();
-					retail();
-					manufacture();
-					product();
-					currentSearch.desc = cpscResponse[0][i]["Description"];
-					currentSearch.date = cpscResponse[0][i]["RecallDate"].slice(0,10);
-					currentSearch.date = parseInt(currentSearch.date.replace(/-/g,""));
-					currentSearch.firm = retailers + ", " + manufacturers;
-					currentSearch.agency = "Consumer Product Safety Commission (CPSC)"
-					currentSearch.recallNo = cpscResponse[0][i]["RecallID"];
-					function remedy () {
-						if (cpscResponse[0][i]["Remedies"].length > 0) {
-							currentSearch.remedy = cpscResponse[0][i]["Remedies"][0]["Name"];	
-						}
-					};
-					function img () {
-						if (cpscResponse[0][i]["Images"][0]) {
-							currentSearch.img = cpscResponse[0][i]["Images"][0]["URL"];
-						} else {
-							currentSearch.img = "img/teddy.png";
-						}
-					};
-					function retail () {
-						if (cpscResponse[0][i]["Retailers"][0]) {
-							retailers = cpscResponse[0][i]["Retailers"][0]["Name"];
-						} else {
-							retailers = "";
-						}
-					};
-					function manufacture () {
-						if (cpscResponse[0][i]["Manufacturers"][0]) {
-							manufacturers = cpscResponse[0][i]["Manufacturers"][0]["Name"];
-						} else {
-							manufacturers = "";
-						}
-					};
-					function product () {
-						if (cpscResponse[0][i]["Products"][0]) {
-							currentSearch.name = cpscResponse[0][i]["Products"][0]["Name"];
-							currentSearch.quantity = cpscResponse[0][i]["Products"][0]["NumberOfUnits"];
-							currentSearch.type = cpscResponse[0][i]["Products"][0]["Type"];	
-						}
-					};
-					buildSorted(currentSearch);
-				}
-			} else {
-				console.log("CSPC server is not responding");
-				Materialize.toast('CSPC Error Try Again', 2000);
-			}
-			//formatting FDA data
-			if (fdaResponse[1] == "success") {
-				Materialize.toast('Retrieved FDA Data', 2000);
-				for (var i=0; i < fdaResponse[0]["results"].length; i++) {
-							var currentSearch = new SearchResult();
-							currentSearch.name = fdaResponse[0]["results"][i]["product_description"];
-							currentSearch.desc = fdaResponse[0]["results"][i]["reason_for_recall"];
-							currentSearch.date = parseInt(fdaResponse[0]["results"][i]["recall_initiation_date"]);
-							currentSearch.quantity = fdaResponse[0]["results"][i]["product_quantity"];
-							currentSearch.firm = fdaResponse[0]["results"][i]["recalling_firm"];
-							currentSearch.agency = "Federal and Drug Administration (FDA)";
-							currentSearch.type = fdaResponse[0]["results"][i]["product_type"];
-							currentSearch.recallNo = fdaResponse[0]["results"][i]["recall_number"];
-							currentSearch.remedy = "http://www.fda.gov/Safety/Recalls/default.htm";
-							currentSearch.img = "img/food.png";
-							buildSorted(currentSearch);
-				}
-			} else {
-				console.log ('FDA server is not responding');
-				Materialize.toast('FDA Error Try Again', 2000);
-			}
-			//rendering all responses to the page
+	    	removeSpinner();
+	    	cpscReformat(cpscResponse);
+			fdaReformat(fdaResponse);
 			resultify(newUser.searchArray);
 
 	    }, function(cpscError, fdaError) {
 	    	console.log(cpscError, fdaError);
+	    	removeSpinner();
 	    	Materialize.toast('Error retrieving data, try again', 2000);
-
 	    });
 		event.preventDefault();
 	});
+
+	$("#today-search").click(function(event) {
+		newUser.newSearch();
+		spinner();
+		//ajax request sent to CPSC
+		var date = new Date();
+		var dd = ("0" + date.getDate()).slice(-2);
+		var mm = ("0" + (date.getMonth() + 1)).slice(-2);
+		var yyyy = date.getFullYear();
+
+
+		var cpscToday = $.ajax({
+	        url: 'http://www.saferproducts.gov/RestWebServices/Recall?RecallDateStart=' + yyyy + '-' + mm + '-' + dd + '&format=json&limit=10',
+	        method: "GET"    
+      	});
+
+		//request sent out to the FDA which retrieves ENFORCEMENT REPORTS not recalls
+      	var fdaToday = $.ajax({
+		    url: 'https://api.fda.gov/food/enforcement.json?api_key=' + fdaApiKey + '&search=recall_date:' + yyyy + mm + dd + '&limit=10',
+	        method: "GET"
+	    });
+
+
+	    $.when(cpscToday,fdaToday).then(function(cpscResponse, fdaResponse) {
+	    	moveSearchBox();
+	    	removeSpinner();
+	    	cpscReformat(cpscResponse);
+	    	fdaReformat(fdaResponse);
+			resultify(newUser.searchArray);
+
+	    }, function(err) {
+	    	console.log(err);
+	    	if (err.responseText) {
+	    		//fda data gives an error when there are no matches :(
+	    		//therefore built in a nested when to run for CSPC results 
+	    		//the second value in when function is just placeholder so 
+	    		//values stay in the same format for cpscReformat function
+	    		$.when(cpscToday,1).then(function(cpscResponse, value) {
+	    			moveSearchBox();
+			    	removeSpinner();
+			    	cpscReformat(cpscResponse);
+					resultify(newUser.searchArray);
+	    		})
+	    	} else {
+	    		removeSpinner();
+	    		Materialize.toast('Error retrieving data, try again', 2000);
+	    	}
+	    });
+		event.preventDefault();
+	});
+
+
 }
 
